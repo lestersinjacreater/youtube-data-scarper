@@ -5,8 +5,21 @@ import VideoList from "./components/videoList";
 const App = () => {
   const [channelId, setChannelId] = useState("");
   const [videos, setVideos] = useState([]);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
+
+  // Helper to filter by date
+  const isWithinDateRange = (dateString) => {
+    const videoDate = new Date(dateString);
+    const start = startDate ? new Date(startDate) : null;
+    const end = endDate ? new Date(endDate) : null;
+
+    if (start && videoDate < start) return false;
+    if (end && videoDate > end) return false;
+    return true;
+  };
 
   const fetchVideos = async () => {
     const cacheKey = `youtube_videos_${channelId}`;
@@ -14,7 +27,11 @@ const App = () => {
 
     if (cachedData) {
       console.log("💾 Using cached data from localStorage");
-      setVideos(JSON.parse(cachedData));
+      const parsed = JSON.parse(cachedData);
+      const filtered = parsed.filter((video) =>
+        isWithinDateRange(video.publishedAt)
+      );
+      setVideos(filtered);
       return;
     }
 
@@ -79,16 +96,21 @@ const App = () => {
         keepFetching = !!nextPageToken;
       }
 
-      // ✅ Cache the data
+      // ✅ Cache all videos
       localStorage.setItem(cacheKey, JSON.stringify(allVideos));
 
-      setVideos(allVideos);
+      // ✅ Filter by date range
+      const filtered = allVideos.filter((video) =>
+        isWithinDateRange(video.publishedAt)
+      );
+
+      setVideos(filtered);
     } catch (error) {
       console.error("Error fetching data", error);
     }
   };
 
-  // 🔁 Clear cache button handler (optional)
+  // 🔁 Clear cache button handler
   const clearCache = () => {
     const cacheKey = `youtube_videos_${channelId}`;
     localStorage.removeItem(cacheKey);
@@ -98,6 +120,8 @@ const App = () => {
   return (
     <div className="p-6 font-sans">
       <h1 className="text-2xl font-bold mb-4">YouTube Channel Video Stats</h1>
+
+      {/* Channel ID input */}
       <input
         className="border p-2 mr-2"
         type="text"
@@ -105,18 +129,42 @@ const App = () => {
         value={channelId}
         onChange={(e) => setChannelId(e.target.value)}
       />
+
+      {/* Date Filters */}
+      <div className="my-4">
+        <label className="mr-2 font-medium">Start Date:</label>
+        <input
+          type="date"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+          className="border p-2 mr-4"
+        />
+
+        <label className="mr-2 font-medium">End Date:</label>
+        <input
+          type="date"
+          value={endDate}
+          onChange={(e) => setEndDate(e.target.value)}
+          className="border p-2"
+        />
+      </div>
+
+      {/* Buttons */}
       <button
         className="bg-blue-600 text-white px-4 py-2 rounded mr-2"
         onClick={fetchVideos}
       >
         Fetch Videos
       </button>
+
       <button
         className="bg-red-600 text-white px-4 py-2 rounded"
         onClick={clearCache}
       >
         🗑️ Clear Cache
       </button>
+
+      {/* Video List */}
       <VideoList videos={videos} />
     </div>
   );
