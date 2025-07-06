@@ -23,26 +23,39 @@ const exportToCSV = (videos) => {
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
 
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
   const link = document.createElement("a");
   link.setAttribute("href", url);
-  link.setAttribute("download", "youtube_video_data.csv");
+  link.setAttribute("download", `youtube_videos_${today}.csv`);
   link.click();
 };
 
 const VideoList = ({ videos }) => {
   if (videos.length === 0) return null;
 
+  // ✅ Sort videos by newest first
+  const sortedVideos = [...videos].sort(
+    (a, b) => new Date(b.publishedAt) - new Date(a.publishedAt)
+  );
+
   return (
     <div className="mt-6">
-      <h2 className="text-xl font-semibold mb-2">Fetched Videos:</h2>
+      {/* ✅ Video count header */}
+      <h2 className="text-xl font-semibold mb-2">
+        Fetched Videos: {sortedVideos.length}
+      </h2>
+
+      {/* ✅ Export CSV button */}
       <button
         className="mb-4 bg-green-600 text-white px-4 py-2 rounded"
-        onClick={() => exportToCSV(videos)}
+        onClick={() => exportToCSV(sortedVideos)}
       >
         📥 Export CSV
       </button>
+
+      {/* Video list */}
       <ul>
-        {videos.map((video) => (
+        {sortedVideos.map((video) => (
           <li key={video.id} className="mb-3 border-b pb-2">
             <p className="font-medium">{video.title}</p>
             <p>Published: {new Date(video.publishedAt).toLocaleDateString()}</p>
