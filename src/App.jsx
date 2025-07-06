@@ -7,10 +7,10 @@ const App = () => {
   const [videos, setVideos] = useState([]);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [allVideosCount, setAllVideosCount] = useState(0); // New state
 
   const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
 
-  // Helper to filter by date
   const isWithinDateRange = (dateString) => {
     const videoDate = new Date(dateString);
     const start = startDate ? new Date(startDate) : null;
@@ -28,6 +28,7 @@ const App = () => {
     if (cachedData) {
       console.log("💾 Using cached data from localStorage");
       const parsed = JSON.parse(cachedData);
+      setAllVideosCount(parsed.length); // Track original total
       const filtered = parsed.filter((video) =>
         isWithinDateRange(video.publishedAt)
       );
@@ -96,10 +97,10 @@ const App = () => {
         keepFetching = !!nextPageToken;
       }
 
-      // ✅ Cache all videos
       localStorage.setItem(cacheKey, JSON.stringify(allVideos));
 
-      // ✅ Filter by date range
+      setAllVideosCount(allVideos.length); // track unfiltered count
+
       const filtered = allVideos.filter((video) =>
         isWithinDateRange(video.publishedAt)
       );
@@ -110,7 +111,6 @@ const App = () => {
     }
   };
 
-  // 🔁 Clear cache button handler
   const clearCache = () => {
     const cacheKey = `youtube_videos_${channelId}`;
     localStorage.removeItem(cacheKey);
@@ -121,7 +121,7 @@ const App = () => {
     <div className="p-6 font-sans">
       <h1 className="text-2xl font-bold mb-4">YouTube Channel Video Stats</h1>
 
-      {/* Channel ID input */}
+      {/* Channel ID */}
       <input
         className="border p-2 mr-2"
         type="text"
@@ -130,7 +130,7 @@ const App = () => {
         onChange={(e) => setChannelId(e.target.value)}
       />
 
-      {/* Date Filters */}
+      {/* Date filters */}
       <div className="my-4">
         <label className="mr-2 font-medium">Start Date:</label>
         <input
@@ -149,7 +149,7 @@ const App = () => {
         />
       </div>
 
-      {/* Buttons */}
+      {/* Action buttons */}
       <button
         className="bg-blue-600 text-white px-4 py-2 rounded mr-2"
         onClick={fetchVideos}
@@ -163,6 +163,13 @@ const App = () => {
       >
         🗑️ Clear Cache
       </button>
+
+      {/* Filtered count info */}
+      {allVideosCount > 0 && (
+        <p className="mt-4 text-green-700 font-medium">
+          ✅ Showing {videos.length} of {allVideosCount} videos
+        </p>
+      )}
 
       {/* Video List */}
       <VideoList videos={videos} />
