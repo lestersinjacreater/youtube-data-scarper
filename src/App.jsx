@@ -7,7 +7,7 @@ const App = () => {
   const [videos, setVideos] = useState([]);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [allVideosCount, setAllVideosCount] = useState(0); // New state
+  const [allVideosCount, setAllVideosCount] = useState(0);
 
   const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
 
@@ -28,11 +28,16 @@ const App = () => {
     if (cachedData) {
       console.log("💾 Using cached data from localStorage");
       const parsed = JSON.parse(cachedData);
-      setAllVideosCount(parsed.length); // Track original total
-      const filtered = parsed.filter((video) =>
-        isWithinDateRange(video.publishedAt)
-      );
-      setVideos(filtered);
+      setAllVideosCount(parsed.length);
+
+      if (!startDate && !endDate) {
+        setVideos(parsed); // No filter applied
+      } else {
+        const filtered = parsed.filter((video) =>
+          isWithinDateRange(video.publishedAt)
+        );
+        setVideos(filtered);
+      }
       return;
     }
 
@@ -92,20 +97,21 @@ const App = () => {
         }));
 
         allVideos = [...allVideos, ...videoData];
-
         nextPageToken = playlistItemsRes.data.nextPageToken;
         keepFetching = !!nextPageToken;
       }
 
       localStorage.setItem(cacheKey, JSON.stringify(allVideos));
+      setAllVideosCount(allVideos.length);
 
-      setAllVideosCount(allVideos.length); // track unfiltered count
-
-      const filtered = allVideos.filter((video) =>
-        isWithinDateRange(video.publishedAt)
-      );
-
-      setVideos(filtered);
+      if (!startDate && !endDate) {
+        setVideos(allVideos); // No filter applied
+      } else {
+        const filtered = allVideos.filter((video) =>
+          isWithinDateRange(video.publishedAt)
+        );
+        setVideos(filtered);
+      }
     } catch (error) {
       console.error("Error fetching data", error);
     }
@@ -164,10 +170,15 @@ const App = () => {
         🗑️ Clear Cache
       </button>
 
-      {/* Filtered count info */}
+      {/* Filter summary */}
       {allVideosCount > 0 && (
         <p className="mt-4 text-green-700 font-medium">
-          ✅ Showing {videos.length} of {allVideosCount} videos
+          ✅ Showing {videos.length} of {allVideosCount} videos{" "}
+          {startDate || endDate
+            ? `(filtered from ${startDate || "beginning"} to ${
+                endDate || "latest"
+              })`
+            : "(no filters applied)"}
         </p>
       )}
 
