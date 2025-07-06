@@ -33,36 +33,64 @@ const exportToCSV = (videos) => {
 const VideoList = ({ videos }) => {
   if (videos.length === 0) return null;
 
-  // ✅ Sort videos by newest first
+  // Sort videos by newest first
   const sortedVideos = [...videos].sort(
     (a, b) => new Date(b.publishedAt) - new Date(a.publishedAt)
   );
 
   return (
-    <div className="mt-6">
-      {/* ✅ Video count header */}
-      <h2 className="text-xl font-semibold mb-2">
-        Fetched Videos: {sortedVideos.length}
-      </h2>
+    <div style={{ marginTop: '2rem' }}>
+      <div className="card">
+        {/* Video count header */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: '1.5rem',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}>
+          <h2 style={{ 
+            fontSize: '1.5rem', 
+            fontWeight: 600, 
+            color: 'var(--text-primary)',
+            margin: 0
+          }}>
+            📹 Video Library ({sortedVideos.length} videos)
+          </h2>
 
-      {/* ✅ Export CSV button */}
-      <button
-        className="mb-4 bg-green-600 text-white px-4 py-2 rounded"
-        onClick={() => exportToCSV(sortedVideos)}
-      >
-        📥 Export CSV
-      </button>
+          {/* Export CSV button */}
+          <button
+            className="btn-success"
+            onClick={() => exportToCSV(sortedVideos)}
+          >
+            📥 Export CSV
+          </button>
+        </div>
 
-      {/* Video list */}
-      <ul>
-        {sortedVideos.map((video) => (
-          <li key={video.id} className="mb-3 border-b pb-2">
-            <p className="font-medium">{video.title}</p>
-            <p>Published: {new Date(video.publishedAt).toLocaleDateString()}</p>
-            <p>Duration: {formatDuration(video.duration)}</p>
-          </li>
-        ))}
-      </ul>
+        {/* Video list */}
+        <div>
+          {sortedVideos.map((video, index) => (
+            <div key={video.id} className="video-item">
+              <div className="video-title">
+                {index + 1}. {video.title}
+              </div>
+              <div className="video-meta">
+                <span>
+                  📅 {new Date(video.publishedAt).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                  })}
+                </span>
+                <span>
+                  ⏱️ {formatDuration(video.duration)}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };

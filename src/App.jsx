@@ -8,6 +8,8 @@ const App = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [allVideosCount, setAllVideosCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
 
@@ -26,12 +28,10 @@ const App = () => {
     const cachedData = localStorage.getItem(cacheKey);
 
     if (cachedData) {
-      console.log("💾 Using cached data from localStorage");
       const parsed = JSON.parse(cachedData);
       setAllVideosCount(parsed.length);
-
       if (!startDate && !endDate) {
-        setVideos(parsed); // No filter applied
+        setVideos(parsed);
       } else {
         const filtered = parsed.filter((video) =>
           isWithinDateRange(video.publishedAt)
@@ -41,8 +41,10 @@ const App = () => {
       return;
     }
 
+    setIsLoading(true);
+    setError("");
+
     try {
-      console.log("🌐 Fetching from YouTube API...");
       const uploadsPlaylistRes = await axios.get(
         `https://www.googleapis.com/youtube/v3/channels`,
         {
@@ -59,9 +61,8 @@ const App = () => {
 
       let allVideos = [];
       let nextPageToken = "";
-      let keepFetching = true;
 
-      while (keepFetching) {
+      while (true) {
         const playlistItemsRes = await axios.get(
           `https://www.googleapis.com/youtube/v3/playlistItems`,
           {
@@ -97,15 +98,16 @@ const App = () => {
         }));
 
         allVideos = [...allVideos, ...videoData];
+
         nextPageToken = playlistItemsRes.data.nextPageToken;
-        keepFetching = !!nextPageToken;
+        if (!nextPageToken) break;
       }
 
       localStorage.setItem(cacheKey, JSON.stringify(allVideos));
       setAllVideosCount(allVideos.length);
 
       if (!startDate && !endDate) {
-        setVideos(allVideos); // No filter applied
+        setVideos(allVideos);
       } else {
         const filtered = allVideos.filter((video) =>
           isWithinDateRange(video.publishedAt)
@@ -113,74 +115,124 @@ const App = () => {
         setVideos(filtered);
       }
     } catch (error) {
+      setError("Error fetching data. Please try again later.");
       console.error("Error fetching data", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const clearCache = () => {
     const cacheKey = `youtube_videos_${channelId}`;
     localStorage.removeItem(cacheKey);
-    alert("Cache cleared for this channel!");
+    setVideos([]);
+    setAllVideosCount(0);
+    setError("");
+    // Show success message briefly
+    setError(""); // Clear any existing errors
+    // You could add a success state here if you want
   };
 
   return (
-    <div className="p-6 font-sans">
-      <h1 className="text-2xl font-bold mb-4">YouTube Channel Video Stats</h1>
+    <div className="container">
+      <div className="card">
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <h1>🎥 YouTube Channel Analytics</h1>
+          <p className="subtitle">
+            Analyze video statistics and trends from any YouTube channel
+          </p>
+        </div>
 
-      {/* Channel ID */}
-      <input
-        className="border p-2 mr-2"
-        type="text"
-        placeholder="Enter Channel ID (e.g. UCj7xVVOm3d3-WyzFdfz2pLQ)"
-        value={channelId}
-        onChange={(e) => setChannelId(e.target.value)}
-      />
+        <div style={{ marginBottom: '2rem' }}>
+          {/* Channel ID Input */}
+          <div className="form-group">
+            <label className="form-label">YouTube Channel ID</label>
+            <input
+              type="text"
+              placeholder="Enter Channel ID (e.g. UCj7xVVOm3d3-WyzFdfz2pLQ)"
+              value={channelId}
+              onChange={(e) => setChannelId(e.target.value)}
+              style={{ width: '100%' }}
+            />
+          </div>
 
-      {/* Date filters */}
-      <div className="my-4">
-        <label className="mr-2 font-medium">Start Date:</label>
-        <input
-          type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-          className="border p-2 mr-4"
-        />
+          {/* Date Filters */}
+          <div className="form-group">
+            <label className="form-label">Filter by Date Range (Optional)</label>
+            <div className="form-row">
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', display: 'block' }}>
+                  Start Date:
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  style={{ width: '100%' }}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', display: 'block' }}>
+                  End Date:
+                </label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  style={{ width: '100%' }}
+                />
+              </div>
+            </div>
+          </div>
 
-        <label className="mr-2 font-medium">End Date:</label>
-        <input
-          type="date"
-          value={endDate}
-          onChange={(e) => setEndDate(e.target.value)}
-          className="border p-2"
-        />
+          {/* Action Buttons */}
+          <div className="form-row">
+            <button
+              onClick={fetchVideos}
+              className="btn-primary"
+              disabled={!channelId.trim() || isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <span className="loading-spinner"></span>
+                  Loading...
+                </>
+              ) : (
+                <>🚀 Fetch Videos</>
+              )}
+            </button>
+            <button
+              onClick={clearCache}
+              className="btn-danger"
+              disabled={!channelId.trim()}
+            >
+              🗑️ Clear Cache
+            </button>
+          </div>
+
+          {/* Stats Summary */}
+          {allVideosCount > 0 && (
+            <div style={{ marginTop: '2rem' }}>
+              <div className="stats-card">
+                <div className="stats-number">{videos.length}</div>
+                <div className="stats-label">
+                  Videos Found{videos.length !== allVideosCount && ` (of ${allVideosCount} total)`}
+                  {startDate || endDate
+                    ? ` • Filtered from ${startDate || "beginning"} to ${endDate || "latest"}`
+                    : " • No date filters applied"}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Error Message */}
+          {error && (
+            <div className="error-message">
+              ⚠️ {error}
+            </div>
+          )}
+        </div>
       </div>
-
-      {/* Action buttons */}
-      <button
-        className="bg-blue-600 text-white px-4 py-2 rounded mr-2"
-        onClick={fetchVideos}
-      >
-        Fetch Videos
-      </button>
-
-      <button
-        className="bg-red-600 text-white px-4 py-2 rounded"
-        onClick={clearCache}
-      >
-        🗑️ Clear Cache
-      </button>
-
-      {/* Filter summary */}
-      {allVideosCount > 0 && (
-        <p className="mt-4 text-green-700 font-medium">
-          ✅ Showing {videos.length} of {allVideosCount} videos{" "}
-          {startDate || endDate
-            ? `(filtered from ${startDate || "beginning"} to ${
-                endDate || "latest"
-              })`
-            : "(no filters applied)"}
-        </p>
-      )}
 
       {/* Video List */}
       <VideoList videos={videos} />
