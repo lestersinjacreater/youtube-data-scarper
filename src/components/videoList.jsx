@@ -10,13 +10,51 @@ const formatDuration = (isoDuration) => {
   return `${h}${m}${s}`.trim();
 };
 
+// Helper to convert seconds to readable format
+const formatSecondsToReadable = (seconds) => {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+  
+  if (hours > 0) {
+    return `${hours}h ${minutes}m ${remainingSeconds}s`;
+  } else if (minutes > 0) {
+    return `${minutes}m ${remainingSeconds}s`;
+  } else {
+    return `${remainingSeconds}s`;
+  }
+};
+
+// Calculate duration statistics
+const calculateDurationStats = (videos) => {
+  if (videos.length === 0) return null;
+  
+  const durations = videos.map(video => video.durationSeconds).filter(Boolean);
+  const total = durations.reduce((sum, duration) => sum + duration, 0);
+  const average = Math.round(total / durations.length);
+  const shortest = Math.min(...durations);
+  const longest = Math.max(...durations);
+  
+  return {
+    total,
+    average,
+    shortest,
+    longest,
+    totalFormatted: formatSecondsToReadable(total),
+    averageFormatted: formatSecondsToReadable(average),
+    shortestFormatted: formatSecondsToReadable(shortest),
+    longestFormatted: formatSecondsToReadable(longest)
+  };
+};
+
 // CSV export function
 const exportToCSV = (videos) => {
-  const headers = ["Title", "Published At", "Duration"];
+  const headers = ["Title", "Published At", "Duration", "Duration (Seconds)"];
   const rows = videos.map((video) => [
     `"${video.title}"`,
     new Date(video.publishedAt).toLocaleDateString(),
     formatDuration(video.duration),
+    video.durationSeconds || 0,
   ]);
 
   const csvContent = [headers, ...rows].map((row) => row.join(",")).join("\n");
@@ -37,6 +75,9 @@ const VideoList = ({ videos }) => {
   const sortedVideos = [...videos].sort(
     (a, b) => new Date(b.publishedAt) - new Date(a.publishedAt)
   );
+
+  // Calculate duration statistics
+  const durationStats = calculateDurationStats(sortedVideos);
 
   return (
     <div style={{ marginTop: '2rem' }}>
@@ -68,6 +109,56 @@ const VideoList = ({ videos }) => {
           </button>
         </div>
 
+        {/* Duration Statistics */}
+        {durationStats && (
+          <div style={{ 
+            marginBottom: '2rem', 
+            padding: '1rem',
+            backgroundColor: 'var(--bg-secondary)',
+            borderRadius: '8px',
+            border: '1px solid var(--border-color)'
+          }}>
+            <h3 style={{ 
+              fontSize: '1.1rem', 
+              fontWeight: 600, 
+              color: 'var(--text-primary)',
+              marginBottom: '1rem'
+            }}>
+              ⏱️ Duration Statistics
+            </h3>
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+              gap: '1rem' 
+            }}>
+              <div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Total Watch Time</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {durationStats.totalFormatted} ({durationStats.total.toLocaleString()} seconds)
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Average Duration</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {durationStats.averageFormatted} ({durationStats.average.toLocaleString()} seconds)
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Shortest Video</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {durationStats.shortestFormatted} ({durationStats.shortest.toLocaleString()} seconds)
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Longest Video</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {durationStats.longestFormatted} ({durationStats.longest.toLocaleString()} seconds)
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Video list */}
         <div>
           {sortedVideos.map((video, index) => (
@@ -85,6 +176,11 @@ const VideoList = ({ videos }) => {
                 </span>
                 <span>
                   ⏱️ {formatDuration(video.duration)}
+                  {video.durationSeconds && (
+                    <span style={{ color: 'var(--text-secondary)', marginLeft: '0.5rem' }}>
+                      ({video.durationSeconds.toLocaleString()} seconds)
+                    </span>
+                  )}
                 </span>
               </div>
             </div>

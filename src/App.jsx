@@ -23,6 +23,18 @@ const App = () => {
     return true;
   };
 
+  // Convert ISO 8601 duration to seconds
+  const convertDurationToSeconds = (isoDuration) => {
+    const regex = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/;
+    const [, hours, minutes, seconds] = isoDuration.match(regex) || [];
+    
+    const h = parseInt(hours) || 0;
+    const m = parseInt(minutes) || 0;
+    const s = parseInt(seconds) || 0;
+    
+    return h * 3600 + m * 60 + s;
+  };
+
   const extractChannelId = async (url) => {
     try {
       const channelRegex = /youtube\.com\/channel\/([a-zA-Z0-9_-]+)/;
@@ -116,6 +128,7 @@ const App = () => {
           title: video.snippet.title,
           publishedAt: video.snippet.publishedAt,
           duration: video.contentDetails.duration,
+          durationSeconds: convertDurationToSeconds(video.contentDetails.duration),
         }));
 
         allVideos = [...allVideos, ...videoData];
