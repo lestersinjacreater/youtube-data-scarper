@@ -49,22 +49,24 @@ const calculateDurationStats = (videos) => {
 
 // CSV export function
 const exportToCSV = (videos) => {
-  const headers = ["Title", "Published At", "Duration", "Duration (Seconds)"];
+  const headers = ["Title", "Published At", "Duration (Seconds)"];
   const rows = videos.map((video) => [
     `"${video.title}"`,
     new Date(video.publishedAt).toLocaleDateString(),
-    formatDuration(video.duration),
     video.durationSeconds || 0,
   ]);
 
-  const csvContent = [headers, ...rows].map((row) => row.join(",")).join("\n");
+  // Add metadata row at the top
+  const metadataRow = ["# YouTube Video Analytics Export - All durations are in seconds", "", ""];
+  const csvContent = [metadataRow, headers, ...rows].map((row) => row.join(",")).join("\n");
+  
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
 
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
   const link = document.createElement("a");
   link.setAttribute("href", url);
-  link.setAttribute("download", `youtube_videos_${today}.csv`);
+  link.setAttribute("download", `youtube_videos_duration_seconds_${today}.csv`);
   link.click();
 };
 
@@ -125,8 +127,7 @@ const VideoList = ({ videos }) => {
               marginBottom: '1rem'
             }}>
               ⏱️ Duration Statistics
-            </h3>
-            <div style={{ 
+            </h3>            <div style={{ 
               display: 'grid', 
               gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
               gap: '1rem' 
@@ -134,25 +135,25 @@ const VideoList = ({ videos }) => {
               <div>
                 <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Total Watch Time</div>
                 <div style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                  {durationStats.totalFormatted} ({durationStats.total.toLocaleString()} seconds)
+                  {durationStats.total.toLocaleString()} seconds
                 </div>
               </div>
               <div>
                 <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Average Duration</div>
                 <div style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                  {durationStats.averageFormatted} ({durationStats.average.toLocaleString()} seconds)
+                  {durationStats.average.toLocaleString()} seconds
                 </div>
               </div>
               <div>
                 <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Shortest Video</div>
                 <div style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                  {durationStats.shortestFormatted} ({durationStats.shortest.toLocaleString()} seconds)
+                  {durationStats.shortest.toLocaleString()} seconds
                 </div>
               </div>
               <div>
                 <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Longest Video</div>
                 <div style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                  {durationStats.longestFormatted} ({durationStats.longest.toLocaleString()} seconds)
+                  {durationStats.longest.toLocaleString()} seconds
                 </div>
               </div>
             </div>
@@ -165,8 +166,7 @@ const VideoList = ({ videos }) => {
             <div key={video.id} className="video-item">
               <div className="video-title">
                 {index + 1}. {video.title}
-              </div>
-              <div className="video-meta">
+              </div>              <div className="video-meta">
                 <span>
                   📅 {new Date(video.publishedAt).toLocaleDateString('en-US', {
                     year: 'numeric',
@@ -175,12 +175,7 @@ const VideoList = ({ videos }) => {
                   })}
                 </span>
                 <span>
-                  ⏱️ {formatDuration(video.duration)}
-                  {video.durationSeconds && (
-                    <span style={{ color: 'var(--text-secondary)', marginLeft: '0.5rem' }}>
-                      ({video.durationSeconds.toLocaleString()} seconds)
-                    </span>
-                  )}
+                  ⏱️ {video.durationSeconds ? `${video.durationSeconds.toLocaleString()} seconds` : formatDuration(video.duration)}
                 </span>
               </div>
             </div>
